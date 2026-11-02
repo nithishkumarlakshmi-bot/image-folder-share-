@@ -148,14 +148,18 @@ app.post('/api/upload', upload.array('images', 200), (req, res) => {
   res.json({ success: true, folder: newFolder });
 });
 
-// 3. Ultra-simple download by short code or slug: /1.zip or /Experiment.zip
+// 3. Ultra-simple download by folder name, slug, or short code: /Experiment_1(a).zip, /1.zip, etc.
 app.get('/:identifier.zip', (req, res, next) => {
-  const idOrCode = req.params.identifier.toLowerCase();
+  let raw = req.params.identifier;
+  try { raw = decodeURIComponent(raw); } catch (e) {}
+  const target = raw.toLowerCase().trim();
   const folders = getFolders();
+
   const folder = folders.find(f => 
-    (f.code && f.code.toString() === idOrCode) ||
-    (f.slug && f.slug.toLowerCase() === idOrCode) ||
-    f.id.toLowerCase() === idOrCode
+    (f.name && f.name.toLowerCase().trim() === target) ||
+    (f.slug && f.slug.toLowerCase().trim() === target) ||
+    (f.code && f.code.toString() === target) ||
+    (f.id && f.id.toLowerCase() === target)
   );
 
   if (folder) {

@@ -210,18 +210,15 @@ function renderFolders(folders) {
       `;
     }
 
-    const downloadUrl = `${origin}/${folder.code || 1}.zip`;
-    const simpleCmd = `curl -O ${origin}/${folder.code || 1}.zip`;
+    const encodedDownloadUrl = `${origin}/${encodeURIComponent(folder.name)}.zip`;
+    const simpleCmd = `curl -O "${origin}/${folder.name}.zip"`;
 
     card.innerHTML = `
       ${previewHtml}
       <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div>
           <div class="flex items-start justify-between gap-2 mb-1">
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-bold bg-slate-700 text-indigo-300 px-2 py-0.5 rounded-md">#${folder.code || 1}</span>
-              <h3 class="font-bold text-white text-base truncate" title="${folder.name}">${folder.name}</h3>
-            </div>
+            <h3 class="font-bold text-white text-base truncate" title="${folder.name}">${folder.name}</h3>
             <button onclick="deleteFolder('${folder.id}')" title="Delete folder" class="text-slate-500 hover:text-red-400 p-1 text-xs transition">
               <i class="fa-regular fa-trash-can"></i>
             </button>
@@ -237,7 +234,7 @@ function renderFolders(folders) {
 
         <div class="space-y-2 pt-2 border-t border-slate-700/60">
           <!-- 1-Click Web Download Button -->
-          <a href="${downloadUrl}" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-600/30">
+          <a href="${encodedDownloadUrl}" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-600/30">
             <i class="fa-solid fa-download"></i>
             <span>Download Folder (1-Click)</span>
           </a>
@@ -313,7 +310,7 @@ function openModal(folderId) {
   });
 
   modalDownloadBtn.onclick = () => {
-    window.location.href = `/${folder.code || 1}.zip`;
+    window.location.href = `/${encodeURIComponent(folder.name)}.zip`;
   };
 
   galleryModal.classList.remove('hidden');
