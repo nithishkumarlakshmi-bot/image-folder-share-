@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FolderShare - 1-Click Image Folder Sharing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-folder-open text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+            FolderShare
+            <span class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">100% Free</span>
+          </h1>
+          <p class="text-xs text-slate-400">1-Click Image Folder Sharing</p>
+        </div>
+      </div>
+      <a href="#upload-section" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-md shadow-indigo-600/30 flex items-center gap-2">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Upload Folder</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero & Upload Section -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full space-y-10">
+    
+    <!-- Upload Card -->
+    <section id="upload-section" class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="max-w-xl mx-auto text-center space-y-2 mb-6">
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Upload an Image Folder</h2>
+        <p class="text-slate-400 text-sm">Upload an entire folder containing images. Anyone can download it in a single click.</p>
+      </div>
+
+      <!-- Drag & Drop Area -->
+      <div id="dropzone" class="border-2 border-dashed border-slate-600 hover:border-indigo-500 bg-slate-900/50 hover:bg-indigo-950/20 rounded-xl p-8 text-center transition-all cursor-pointer group">
+        <div class="w-16 h-16 mx-auto rounded-full bg-slate-800 group-hover:bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-2xl mb-4 transition-colors">
+          <i class="fa-solid fa-images"></i>
+        </div>
+        <p class="text-base font-semibold text-slate-200 mb-1">Drag and drop your image folder here</p>
+        <p class="text-xs text-slate-400 mb-5">Supports JPG, PNG, WEBP, GIF, SVG</p>
+
+        <!-- Hidden Inputs -->
+        <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
+        <input type="file" id="filesInput" multiple accept="image/*" class="hidden">
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onclick="document.getElementById('folderInput').click()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-folder-plus"></i> Select Entire Folder
+          </button>
+          <button type="button" onclick="document.getElementById('filesInput').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-2">
+            <i class="fa-solid fa-file-image"></i> Select Images
+          </button>
+        </div>
+      </div>
+
+      <!-- File selection info & Folder Name editor -->
+      <div id="selectedInfo" class="hidden mt-6 bg-slate-900/80 border border-slate-700 rounded-xl p-4 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div>
+              <p id="fileCountBadge" class="text-sm font-semibold text-white">0 images selected</p>
+              <p id="fileSizeBadge" class="text-xs text-slate-400">Total size: 0 MB</p>
+            </div>
+          </div>
+          <div class="flex-1 sm:max-w-xs">
+            <label class="block text-xs text-slate-400 mb-1">Folder Name (optional)</label>
+            <input type="text" id="customFolderName" placeholder="e.g. Vacation Photos" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- Upload Button & Progress -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800">
+          <button id="cancelSelectBtn" type="button" class="text-xs text-slate-400 hover:text-slate-200 py-2">
+            Clear selection
+          </button>
+          <button id="startUploadBtn" type="button" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload & Share Folder
+          </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressWrapper" class="hidden space-y-1.5 pt-2">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span>Uploading images...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Public Gallery Feed -->
+    <section class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i>
+            Public Folders
+          </h2>
+          <p class="text-xs text-slate-400">Download any folder instantly with a single click</p>
+        </div>
+        <div class="relative max-w-xs w-full">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+          <input type="text" id="searchInput" placeholder="Search folders..." class="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+
+      <!-- Feed Container -->
+      <div id="foldersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically via app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyFeed" class="hidden text-center py-16 bg-slate-800/30 border border-dashed border-slate-800 rounded-2xl space-y-3">
+        <div class="w-14 h-14 mx-auto rounded-full bg-slate-800 flex items-center justify-center text-slate-500 text-xl">
+          <i class="fa-regular fa-folder-open"></i>
+        </div>
+        <p class="text-base font-semibold text-slate-300">No folders uploaded yet</p>
+        <p class="text-xs text-slate-500">Be the first to upload an image folder above!</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal: View All Images in Folder -->
+  <div id="galleryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <i class="fa-regular fa-images"></i>
+          </div>
+          <div>
+            <h3 id="modalFolderName" class="font-bold text-white text-base">Folder Images</h3>
+            <p id="modalImageCount" class="text-xs text-slate-400">0 images</p>
+          </div>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-2 rounded-lg text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="modalImagesContainer" class="p-6 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-1">
+        <!-- Images injected here -->
+      </div>
+      <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3">
+        <button id="modalDownloadBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2">
+          <i class="fa-solid fa-download"></i> Download Folder (1-Click)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white border border-slate-700 px-4 py-3 rounded-xl shadow-2xl z-50 transform translate-y-24 opacity-0 transition-all duration-300 flex items-center gap-3">
+    <div id="toastIcon" class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <span id="toastMsg" class="text-sm font-medium">Notification</span>
+  </div>
+
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 mt-12">
+    FolderShare &bull; 100% Free & Open Source &bull; Powered by Node.js & Browser APIs
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

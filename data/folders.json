@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fld_mvz9nprbky64",
+    "name": "Experiment_1(a)",
+    "createdAt": "2026-11-02T13:00:01.726Z",
+    "imageCount": 4,
+    "totalSizeBytes": 1389150,
+    "totalSizeFormatted": "1.3 MB",
+    "files": [
+      {
+        "name": "Screenshot__225_.png",
+        "size": 266452,
+        "url": "/uploads/fld_mvz9nprbky64/Screenshot__225_.png"
+      },
+      {
+        "name": "Screenshot__226_.png",
+        "size": 448761,
+        "url": "/uploads/fld_mvz9nprbky64/Screenshot__226_.png"
+      },
+      {
+        "name": "Screenshot__227_.png",
+        "size": 503375,
+        "url": "/uploads/fld_mvz9nprbky64/Screenshot__227_.png"
+      },
+      {
+        "name": "Screenshot__228_.jpeg",
+        "size": 170562,
+        "url": "/uploads/fld_mvz9nprbky64/Screenshot__228_.jpeg"
+      }
+    ],
+    "previews": [
+      "/uploads/fld_mvz9nprbky64/Screenshot__225_.png",
+      "/uploads/fld_mvz9nprbky64/Screenshot__226_.png",
+      "/uploads/fld_mvz9nprbky64/Screenshot__227_.png",
+      "/uploads/fld_mvz9nprbky64/Screenshot__228_.jpeg"
+    ]
+  }
+]
