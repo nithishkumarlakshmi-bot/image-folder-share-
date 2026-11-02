@@ -68,7 +68,6 @@ function setupEventListeners() {
 // Handle File Selection
 function handleFiles(files) {
   const fileArray = Array.from(files);
-  // Filter images only
   const imageFiles = fileArray.filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|svg)$/i.test(f.name));
 
   if (imageFiles.length === 0) {
@@ -78,7 +77,6 @@ function handleFiles(files) {
 
   selectedFiles = imageFiles;
 
-  // Auto-detect folder name from webkitRelativePath if available
   let detectedName = '';
   if (selectedFiles[0].webkitRelativePath) {
     const parts = selectedFiles[0].webkitRelativePath.split('/');
@@ -90,10 +88,9 @@ function handleFiles(files) {
   if (detectedName) {
     customFolderName.value = detectedName;
   } else if (!customFolderName.value) {
-    customFolderName.value = `Image Collection ${new Date().toLocaleDateString()}`;
+    customFolderName.value = `Folder ${new Date().toLocaleDateString()}`;
   }
 
-  // Calculate size
   const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
   fileCountBadge.textContent = `${selectedFiles.length} image${selectedFiles.length === 1 ? '' : 's'} selected`;
   fileSizeBadge.textContent = `Total size: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -191,7 +188,7 @@ function renderFolders(folders) {
     let previewHtml = '';
     if (folder.previews && folder.previews.length > 0) {
       const count = Math.min(folder.previews.length, 4);
-      const gridClass = count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-2';
+      const gridClass = count === 1 ? 'grid-cols-1' : 'grid-cols-2';
 
       previewHtml = `
         <div class="h-44 bg-slate-900 grid ${gridClass} gap-1 p-1 overflow-hidden relative cursor-pointer" onclick="openModal('${folder.id}')">
@@ -213,14 +210,18 @@ function renderFolders(folders) {
       `;
     }
 
-    const downloadUrl = `${origin}/api/folders/${folder.id}/download`;
+    const downloadUrl = `${origin}/${folder.code || 1}.zip`;
+    const simpleCmd = `curl -O ${origin}/${folder.code || 1}.zip`;
 
     card.innerHTML = `
       ${previewHtml}
       <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
         <div>
           <div class="flex items-start justify-between gap-2 mb-1">
-            <h3 class="font-bold text-white text-base truncate" title="${folder.name}">${folder.name}</h3>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold bg-slate-700 text-indigo-300 px-2 py-0.5 rounded-md">#${folder.code || 1}</span>
+              <h3 class="font-bold text-white text-base truncate" title="${folder.name}">${folder.name}</h3>
+            </div>
             <button onclick="deleteFolder('${folder.id}')" title="Delete folder" class="text-slate-500 hover:text-red-400 p-1 text-xs transition">
               <i class="fa-regular fa-trash-can"></i>
             </button>
@@ -241,9 +242,17 @@ function renderFolders(folders) {
             <span>Download Folder (1-Click)</span>
           </a>
 
+          <!-- Simple CMD Snippet -->
+          <div class="bg-slate-900/90 border border-slate-700/60 rounded-xl p-2 flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-300 truncate select-all pr-2">${simpleCmd}</span>
+            <button onclick="copyCmd('${encodeURIComponent(simpleCmd)}')" title="Copy Command" class="bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold transition flex items-center gap-1 shrink-0">
+              <i class="fa-regular fa-copy"></i> Copy
+            </button>
+          </div>
+
           <!-- View Images Button -->
-          <button onclick="openModal('${folder.id}')" class="w-full bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition border border-slate-600/50">
-            <i class="fa-solid fa-eye text-indigo-400"></i>
+          <button onclick="openModal('${folder.id}')" class="w-full bg-slate-700/60 hover:bg-slate-700 text-slate-300 text-xs py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-eye text-slate-400"></i>
             <span>View All Images</span>
           </button>
         </div>
@@ -262,6 +271,22 @@ function filterFolders(keyword) {
   }
   const filtered = allFolders.filter(f => f.name.toLowerCase().includes(query));
   renderFolders(filtered);
+}
+
+// Copy Simple CMD Command
+function copyCmd(encodedCmd) {
+  const cmd = decodeURIComponent(encodedCmd);
+  navigator.clipboard.writeText(cmd).then(() => {
+    showToast('Command copied! Just paste in CMD and press Enter.', 'success');
+  }).catch(() => {
+    const input = document.createElement('input');
+    input.value = cmd;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    showToast('Command copied!', 'success');
+  });
 }
 
 // Modal View
@@ -288,7 +313,7 @@ function openModal(folderId) {
   });
 
   modalDownloadBtn.onclick = () => {
-    window.location.href = `/api/folders/${folder.id}/download`;
+    window.location.href = `/${folder.code || 1}.zip`;
   };
 
   galleryModal.classList.remove('hidden');

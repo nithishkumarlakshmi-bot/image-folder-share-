@@ -21,7 +21,21 @@ if (!fs.existsSync(METADATA_FILE)) fs.writeFileSync(METADATA_FILE, JSON.stringif
 function getFolders() {
   try {
     const raw = fs.readFileSync(METADATA_FILE, 'utf8');
-    return JSON.parse(raw);
+    const folders = JSON.parse(raw);
+    // Ensure all folders have code and slug
+    let changed = false;
+    folders.forEach((f, idx) => {
+      if (!f.code) {
+        f.code = idx + 1;
+        changed = true;
+      }
+      if (!f.slug) {
+        f.slug = (f.name || 'folder').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+        changed = true;
+      }
+    });
+    if (changed) saveFolders(folders);
+    return folders;
   } catch (err) {
     return [];
   }
@@ -42,7 +56,6 @@ function formatBytes(bytes) {
 // Multer storage engine
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // folderId is generated on first file or passed in body
     if (!req.folderId) {
       req.folderId = 'fld_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     }
@@ -53,7 +66,6 @@ const storage = multer.diskStorage({
     cb(null, folderPath);
   },
   filename: (req, file, cb) => {
-    // Sanitize filename
     const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
     cb(null, safeName);
   }
@@ -70,14 +82,33 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// Helper to stream zip archive
+function streamZip(folder, res) {
+  const folderPath = path.join(UPLOADS_DIR, folder.id);
+  if (!fs.existsSync(folderPath)) {
+    return res.status(404).send('Folder files not found on disk');
+  }
+
+  const safeFilename = (folder.name || 'folder').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 5 } });
+  archive.on('error', (err) => res.status(500).send({ error: err.message }));
+  archive.pipe(res);
+
+  archive.directory(folderPath, safeFilename);
+  archive.finalize();
+}
+
 // 1. Get all folders (Public Feed)
 app.get('/api/folders', (req, res) => {
   const folders = getFolders();
-  // Return sorted with newest first
   res.json(folders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
 });
 
-// 2. Upload folder or multiple images
+// 2. Upload folder
 app.post('/api/upload', upload.array('images', 200), (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No image files uploaded' });
@@ -92,9 +123,16 @@ app.post('/api/upload', upload.array('images', 200), (req, res) => {
   }));
 
   const totalSize = filesList.reduce((acc, f) => acc + f.size, 0);
+  const folders = getFolders();
+  
+  // Calculate next simple short code number (1, 2, 3...)
+  const nextCode = folders.length > 0 ? Math.max(...folders.map(f => f.code || 0)) + 1 : 1;
+  const slug = folderName.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
 
   const newFolder = {
     id: folderId,
+    code: nextCode,
+    slug: slug,
     name: folderName,
     createdAt: new Date().toISOString(),
     imageCount: filesList.length,
@@ -104,48 +142,41 @@ app.post('/api/upload', upload.array('images', 200), (req, res) => {
     previews: filesList.slice(0, 4).map(f => f.url)
   };
 
-  const folders = getFolders();
   folders.push(newFolder);
   saveFolders(folders);
 
   res.json({ success: true, folder: newFolder });
 });
 
-// 3. Download folder as a single ZIP (Works for both 1-Click browser download & Windows CMD curl)
+// 3. Ultra-simple download by short code or slug: /1.zip or /Experiment.zip
+app.get('/:identifier.zip', (req, res, next) => {
+  const idOrCode = req.params.identifier.toLowerCase();
+  const folders = getFolders();
+  const folder = folders.find(f => 
+    (f.code && f.code.toString() === idOrCode) ||
+    (f.slug && f.slug.toLowerCase() === idOrCode) ||
+    f.id.toLowerCase() === idOrCode
+  );
+
+  if (folder) {
+    return streamZip(folder, res);
+  }
+  next();
+});
+
+// 4. Download by full API endpoint: /api/folders/:id/download
 app.get('/api/folders/:id/download', (req, res) => {
   const folders = getFolders();
-  const folder = folders.find(f => f.id === req.params.id);
+  const folder = folders.find(f => f.id === req.params.id || (f.code && f.code.toString() === req.params.id));
 
   if (!folder) {
     return res.status(404).send('Folder not found');
   }
 
-  const folderPath = path.join(UPLOADS_DIR, folder.id);
-  if (!fs.existsSync(folderPath)) {
-    return res.status(404).send('Folder contents not found on disk');
-  }
-
-  const safeFilename = folder.name.replace(/[^a-zA-Z0-9_-]/g, '_') || 'images';
-
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.zip"`);
-
-  const archive = archiver('zip', {
-    zlib: { level: 5 } // Fast compression
-  });
-
-  archive.on('error', (err) => {
-    res.status(500).send({ error: err.message });
-  });
-
-  archive.pipe(res);
-
-  // Add all files from the folder
-  archive.directory(folderPath, safeFilename);
-  archive.finalize();
+  streamZip(folder, res);
 });
 
-// 4. Delete folder
+// 5. Delete folder
 app.delete('/api/folders/:id', (req, res) => {
   const folders = getFolders();
   const idx = folders.findIndex(f => f.id === req.params.id);
@@ -157,12 +188,10 @@ app.delete('/api/folders/:id', (req, res) => {
   const folderId = folders[idx].id;
   const folderPath = path.join(UPLOADS_DIR, folderId);
 
-  // Remove files from disk
   if (fs.existsSync(folderPath)) {
     fs.rmSync(folderPath, { recursive: true, force: true });
   }
 
-  // Remove from metadata
   folders.splice(idx, 1);
   saveFolders(folders);
 
@@ -171,7 +200,7 @@ app.delete('/api/folders/:id', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n======================================================`);
-  console.log(` Image Folder Sharing App running at:`);
+  console.log(` FolderShare App running at:`);
   console.log(` 👉 http://localhost:${PORT}`);
   console.log(`======================================================\n`);
 });
